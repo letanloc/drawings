@@ -1,6 +1,8 @@
 package com.dma.drawings;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -18,9 +20,11 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 
 public class DrawActivity extends Activity 
-implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
+implements OnTouchListener,SurfaceHolder.Callback  {
 
 	
+	
+	private static final int DELAY   = 30;
 	
 	/**The SurfaceView to draw on.*/
 	private  SurfaceView drawView;
@@ -37,6 +41,7 @@ implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
 	private Path path;
 	private ArrayList<Path> arrayOfPaths;
 	private ArrayList<Paint> arrayOfPaints;
+	private Timer drawTimer;
 	
 	
 	@Override
@@ -53,7 +58,7 @@ implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
 		this.paint.setAntiAlias(true);
 		this.paint.setStrokeCap(Paint.Cap.ROUND);
 		this.paint.setStyle(Paint.Style.STROKE);
-		this.paint.setStrokeWidth(10);
+		this.paint.setStrokeWidth(30);
 		this.path = new Path();
 		this.arrayOfPaths = new ArrayList<Path>();
 		this.arrayOfPaints = new ArrayList<Paint>();
@@ -64,6 +69,12 @@ implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
 	protected void onResume() {
 		super.onResume();
 		this.drawView.getHolder().addCallback(this);
+		this.startTimer();
+	}
+	
+	protected void onPause() {
+		super.onPause();
+		this.stopTimer();
 	}
 
 	@Override
@@ -107,10 +118,6 @@ implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
 		else  {
 			this.path.lineTo(event.getX(), event.getY());
 		}
-		new Thread(this).start();
-		
-			
-		
 		
 		return true;
 	}
@@ -136,20 +143,50 @@ implements OnTouchListener,SurfaceHolder.Callback, Runnable  {
 		
 	}
 
-	@Override
-	public void run() {
-		Canvas c = this.holder.lockCanvas();
-		if (c != null) {
-			c.drawColor(this.background);
+	private void stopTimer() {
+		
+		if (this.drawTimer != null) {
+			this.drawTimer.cancel();
+			this.drawTimer.purge();
+			this.drawTimer = null;
 			
-			for (int i = 0; i < this.arrayOfPaints.size(); i++) {
-				c.drawPath(this.arrayOfPaths.get(i), this.arrayOfPaints.get(i));
-			}
-			
-			c.drawPath(this.path, this.paint);
-			this.holder.unlockCanvasAndPost(c);
 		}
 		
+	}
+	
+	private void startTimer() {
+		
+		if (this.drawTimer != null) {
+			this.stopTimer();
+		}
+			this.drawTimer = new Timer();
+			this.drawTimer.schedule(new DrawTask(), 0, DELAY);
+		
+		
+		
+	}
+	
+	protected class DrawTask extends TimerTask {
+
+		@Override
+		public void run() {
+			
+			
+			if (holder != null) {
+			
+				Canvas c = holder.lockCanvas();
+				if (c != null) {
+					c.drawColor(background);
+			
+				for (int i = 0; i < arrayOfPaints.size(); i++) {
+					c.drawPath(arrayOfPaths.get(i), arrayOfPaints.get(i));
+				}
+			
+					c.drawPath(path, paint);
+					holder.unlockCanvasAndPost(c);
+				}
+			}
+		}
 	}
 
 }
